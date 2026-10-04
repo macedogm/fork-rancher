@@ -42,8 +42,9 @@ RUN version="$(/usr/bin/helm4 version --template '{{.Version}}')" && \
     printf '%s\n' "$version" > /helm-version
 
 FROM helm-tools AS installer-build
+ARG TARGETARCH
 ARG VERSION
-ENV CHART_VERSION=${VERSION}
+ENV ARCH=${TARGETARCH} CHART_VERSION=${VERSION}
 RUN zypper in -y git && \
     zypper in -y -r pkgs yq && \
     ln -s /usr/bin/helm4 /usr/bin/helm

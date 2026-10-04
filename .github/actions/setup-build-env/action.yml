@@ -12,9 +12,6 @@ outputs:
   CATTLE_K3S_VERSION: 
     description: "CATTLE_K3S_VERSION from package/Dockerfile"
     value: ${{ steps.vars.outputs.CATTLE_K3S_VERSION }}
-  CATTLE_HELM_VERSION: 
-    description: "CATTLE_HELM_VERSION from package/Dockerfile"
-    value: ${{ steps.vars.outputs.CATTLE_HELM_VERSION }}
   GO_VERSION: 
     description: "GO_VERSION from package/Dockerfile"
     value: ${{ steps.vars.outputs.GO_VERSION }}
@@ -34,7 +31,6 @@ runs:
         CATTLE_K3S_VERSION=$(grep -m1 'ENV CATTLE_K3S_VERSION=' package/Dockerfile | cut -d '=' -f2)
         GO_VERSION=$(grep -m1 'golang:' package/Dockerfile | cut -d ':' -f2 | cut -d ' ' -f1)
         HELM_UNITTEST_VERSION=$(grep -m1 'ENV HELM_UNITTEST_VERSION=' Dockerfile.runtime | cut -d '=' -f2)
-        CATTLE_HELM_VERSION=$(grep -m1 'ENV CATTLE_HELM_VERSION=' package/Dockerfile | cut -d '=' -f2)
 
         if [[ -z "$CATTLE_KDM_BRANCH" ]]; then
           echo "CATTLE_KDM_BRANCH not found"
@@ -42,10 +38,6 @@ runs:
         fi
         if [[ -z "$CATTLE_K3S_VERSION" ]]; then
           echo "CATTLE_K3S_VERSION not found"
-          exit 1
-        fi
-        if [[ -z "$CATTLE_HELM_VERSION" ]]; then
-          echo "CATTLE_HELM_VERSION not found"
           exit 1
         fi
         if [[ -z "$GO_VERSION" ]]; then
@@ -59,10 +51,6 @@ runs:
 
         echo "CATTLE_KDM_BRANCH=$CATTLE_KDM_BRANCH" >> $GITHUB_OUTPUT
         echo "CATTLE_K3S_VERSION=$CATTLE_K3S_VERSION" >> $GITHUB_OUTPUT 
-        echo "HELM_VERSION=$HELM_VERSION" >> $GITHUB_OUTPUT 
-        echo "HELM_CHECKSUM_amd64=$HELM_CHECKSUM_amd64" >> $GITHUB_OUTPUT 
-        echo "HELM_CHECKSUM_arm64=$HELM_CHECKSUM_arm64" >> $GITHUB_OUTPUT 
 
         echo "GO_VERSION=$GO_VERSION" >> $GITHUB_OUTPUT 
         echo "HELM_UNITTEST_VERSION=$HELM_UNITTEST_VERSION" >> $GITHUB_OUTPUT
-        echo "CATTLE_HELM_VERSION=$CATTLE_HELM_VERSION" >> $GITHUB_OUTPUT

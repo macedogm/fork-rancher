@@ -32,6 +32,39 @@ FROM --platform=$BUILDPLATFORM ${GODEP_SHEPHERD} AS godep-shepherd
 FROM --platform=$BUILDPLATFORM ${GODEP_STEVE} AS godep-steve
 FROM --platform=$BUILDPLATFORM ${GODEP_WRANGLER} AS godep-wrangler
 
+FROM registry.suse.com/bci/bci-base:16.0 AS helm-tools
+RUN zypper ar -f https://rpm.rancher.io/pkgs/prime pkgs && \
+    rpm --import https://raw.githubusercontent.com/rancher/rancher/refs/heads/main/rancher-rpm-pkgs.key && \
+    zypper in -y -r pkgs helm4
+RUN version="$(/usr/bin/helm4 version --template '{{.Version}}')" && \
+    version="${version%%+*}" && \
+    printf '%s\n' "$version" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' && \
+    printf '%s\n' "$version" > /helm-version
+
+FROM helm-tools AS installer-build
+ARG TARGETARCH
+ARG VERSION
+ENV ARCH=${TARGETARCH} CHART_VERSION=${VERSION}
+RUN zypper in -y git && \
+    zypper in -y -r pkgs yq && \
+    ln -s /usr/bin/helm4 /usr/bin/helm
+COPY Dockerfile.runtime /tmp/Dockerfile.runtime
+RUN HELM_UNITTEST_VERSION="$(grep -m1 'ENV HELM_UNITTEST_VERSION=' /tmp/Dockerfile.runtime | cut -d '=' -f2)" && \
+    test -n "$HELM_UNITTEST_VERSION" && \
+    helm plugin install https://github.com/helm-unittest/helm-unittest.git --version "$HELM_UNITTEST_VERSION" --verify=false && \
+    rm /tmp/Dockerfile.runtime
+WORKDIR /src
+COPY .git/ /src/.git/
+COPY chart/ /src/chart/
+COPY scripts/ /src/scripts/
+COPY build.yaml .
+RUN /src/scripts/chart/ci
+
+FROM scratch AS installer
+COPY --from=helm-tools /usr/bin/helm4 /helm
+COPY --from=installer-build /src/bin/chart/*/*.tgz /
+COPY package/installer-run.sh /run.sh
+
 FROM registry.suse.com/bci/bci-nano:16.0 AS final
 
 # Temporary build stage image
@@ -135,8 +168,6 @@ ENV CATTLE_MACHINE_PROVISION_IMAGE=rancher/machine:${CATTLE_MACHINE_VERSION}
 ENV CATTLE_ETCD_VERSION=v3.7.1
 ENV CATTLE_ETCD_CHECKSUM_amd64=e8cd3fa8064c98137c5dbd78b76f969417ace84efb83c481041d7a52ffdd8fb9
 ENV CATTLE_ETCD_CHECKSUM_arm64=d7e25e08f694b6ed7792fc7b7a891fe2c3f3d3dccfe2f3bfdb1547b0eb75b6da
-# For displaying Helm version in the UI only.
-ENV CATTLE_HELM_VERSION=v4.3.0
 # make sure the version number is consistent with the one at Line 100 of pkg/data/management/machinedriver_data.go
 ENV DOCKER_MACHINE_HARVESTER_VERSION=v1.0.9
 ENV DOCKER_MACHINE_HARVESTER_CHECKSUM_amd64=159ec4d8c0d9dae8e322e7ddff64c0a5837c3dc209ae2e345128d4d5cb32279d
@@ -440,6 +471,7 @@ RUN --mount=type=cache,target=/root/.cache,id=rancher GOOS=$TARGETOS GOARCH=$TAR
 
 
 FROM base AS server
+COPY --from=helm-tools /helm-version /usr/share/rancher/helm-version
 ARG VERSION
 ARG BASE_REGISTRY
 ARG BASE_UI_BRAND

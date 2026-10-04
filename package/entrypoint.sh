@@ -2,6 +2,15 @@
 
 set -e
 
+if [ -z "${CATTLE_HELM_VERSION:-}" ]; then
+    if ! IFS= read -r CATTLE_HELM_VERSION < /usr/share/rancher/helm-version ||
+       [[ ! "$CATTLE_HELM_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+        echo "ERROR: Missing or invalid Helm version metadata"
+        exit 1
+    fi
+fi
+export CATTLE_HELM_VERSION
+
 if [ ! -e /run/secrets/kubernetes.io/serviceaccount ] && [ ! -e /dev/kmsg ]; then
     echo "ERROR: Rancher must be ran with the --privileged flag when running outside of Kubernetes"
     exit 1

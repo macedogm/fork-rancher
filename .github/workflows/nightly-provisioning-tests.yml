@@ -80,9 +80,9 @@ jobs:
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
-          file: ./package/Dockerfile.installer
+          file: ./package/Dockerfile
+          target: installer
           build-args: |
-            BUILDARCH=amd64
             VERSION=0.0.0
           platforms: linux/amd64
           load: false
@@ -129,4 +129,3 @@ jobs:
           event-name: ${{ github.event_name }}
           create-comment: 'off'
           run-id: ${{ github.run_id }}
-

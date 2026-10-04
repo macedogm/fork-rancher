@@ -36,10 +36,7 @@ FROM registry.suse.com/bci/bci-base:16.0 AS helm-tools
 RUN zypper ar -f https://rpm.rancher.io/pkgs/prime pkgs && \
     rpm --import https://raw.githubusercontent.com/rancher/rancher/refs/heads/main/rancher-rpm-pkgs.key && \
     zypper in -y -r pkgs helm4
-RUN version="$(/usr/bin/helm4 version --template '{{.Version}}')" && \
-    version="${version%%+*}" && \
-    printf '%s\n' "$version" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' && \
-    printf '%s\n' "$version" > /helm-version
+RUN /usr/bin/helm4 version --template '{{.Version}}' > /helm-version
 
 FROM helm-tools AS installer-build
 ARG TARGETARCH

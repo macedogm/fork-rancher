@@ -42,17 +42,11 @@ RUN version="$(/usr/bin/helm4 version --template '{{.Version}}')" && \
     printf '%s\n' "$version" > /helm-version
 
 FROM helm-tools AS installer-build
-ARG TARGETARCH
 ARG VERSION
-ENV ARCH=${TARGETARCH} CHART_VERSION=${VERSION}
+ENV CHART_VERSION=${VERSION}
 RUN zypper in -y git && \
     zypper in -y -r pkgs yq && \
     ln -s /usr/bin/helm4 /usr/bin/helm
-COPY Dockerfile.runtime /tmp/Dockerfile.runtime
-RUN HELM_UNITTEST_VERSION="$(grep -m1 'ENV HELM_UNITTEST_VERSION=' /tmp/Dockerfile.runtime | cut -d '=' -f2)" && \
-    test -n "$HELM_UNITTEST_VERSION" && \
-    helm plugin install https://github.com/helm-unittest/helm-unittest.git --version "$HELM_UNITTEST_VERSION" --verify=false && \
-    rm /tmp/Dockerfile.runtime
 WORKDIR /src
 COPY .git/ /src/.git/
 COPY chart/ /src/chart/

@@ -84,7 +84,7 @@ jobs:
           fi
 
           pr_branch="automation/helm-version/${TARGET_BRANCH}"
-          title="[${TARGET_BRANCH}] Sync Helm version with shell image"
+          title="[${TARGET_BRANCH}] Sync Helm version with Shell image"
           body="Auto-generated Helm version update for ${TARGET_BRANCH}.
 
           Shell image: ${image}

@@ -78,12 +78,18 @@ jobs:
 
           old_version=$(sed -n 's/^ENV CATTLE_HELM_VERSION=//p' package/Dockerfile)
           sed -i "s|^ENV CATTLE_HELM_VERSION=.*$|ENV CATTLE_HELM_VERSION=${version}|" package/Dockerfile
+          pr_branch="automation/helm-version/${TARGET_BRANCH}"
           if git diff --quiet -- package/Dockerfile; then
+            pr_number=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open \
+              --head "$pr_branch" --base "$TARGET_BRANCH" --limit 1 \
+              --json number --template '{{range .}}{{.number}}{{end}}')
+            if [ -n "$pr_number" ]; then
+              gh pr close "$pr_number" --repo "$GITHUB_REPOSITORY" \
+                --comment "Closing because the target branch is already synchronized with the shell image."
+            fi
             echo "Helm version is already $version on $TARGET_BRANCH."
             exit 0
           fi
-
-          pr_branch="automation/helm-version/${TARGET_BRANCH}"
           title="[${TARGET_BRANCH}] Sync Helm version with Shell image"
           body="Auto-generated Helm version update for ${TARGET_BRANCH}.
 
